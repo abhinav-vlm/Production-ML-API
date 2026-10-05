@@ -1,2 +1,41 @@
-.venv
+# Virtual environment
+.venv/
+
+# Data files
 data/
+
+# Environment variables (secrets)
+.env
+.env.*
+!.env.example
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Pytest cache
+.pytest_cache/
+
+# ML model binaries
+models/
+*.joblib
+*.pkl
+*.h5
+*.pt
+*.pth
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+*.swo
