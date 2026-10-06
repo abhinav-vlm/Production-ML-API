@@ -19,13 +19,6 @@ __pycache__/
 # Pytest cache
 .pytest_cache/
 
-# ML model binaries
-models/
-*.joblib
-*.pkl
-*.h5
-*.pt
-*.pth
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
