@@ -1,4 +1,5 @@
 import joblib
+import pandas as pd
 
 EXPECTED_FEATURES = [
     "sepal length (cm)",
@@ -22,14 +23,16 @@ def predict(model, features: dict):
     if not all(isinstance(value, (int, float)) for value in features.values()):
         raise ValueError("All feature values must be numeric.")
 
-    # Preserve the exact order used during training
-    ordered_features = [
-        features[name]
+    # Preserve the exact feature names and order used during training
+    ordered_features = {
+        name: features[name]
         for name in EXPECTED_FEATURES
-    ]
+    }
 
-    prediction = model.predict([ordered_features])[0]
-    probability = model.predict_proba([ordered_features])[0].max()
+    input_data = pd.DataFrame([ordered_features])
+
+    prediction = model.predict(input_data)[0]
+    probability = model.predict_proba(input_data)[0].max()
 
     return {
         "prediction": int(prediction),

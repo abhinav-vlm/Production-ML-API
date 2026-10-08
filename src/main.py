@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from src.inference import load_model, predict
 from pydantic import BaseModel
@@ -13,6 +14,16 @@ model = load_model(MODEL_PATH)
 app = FastAPI(
     title="Production ML API",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+    "http://localhost:5500",
+    "http://localhost:8080",
+    ],
+    allow_methods=["POST"],
+    allow_headers=["Content-Type"],
 )
 
 class PredictionRequest(BaseModel):
