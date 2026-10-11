@@ -32,3 +32,10 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Generated Docker image archive
+*.tar
+
+# Secrets
+.env
+*.pem

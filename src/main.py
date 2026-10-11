@@ -7,7 +7,11 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-MODEL_PATH = os.getenv("MODEL_PATH")
+MODEL_PATH = os.getenv(
+    "MODEL_PATH",
+    os.path.join(os.path.dirname(__file__), "..", "models", "iris_classifier.joblib")
+)
+MODEL_PATH = os.path.abspath(MODEL_PATH)
 
 model = load_model(MODEL_PATH)
 
