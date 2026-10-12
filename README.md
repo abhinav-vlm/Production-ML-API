@@ -1,802 +1,346 @@
 Production ML API
 
-1. Project Purpose
-
-This project is a learning-focused production ML engineering laboratory.
+A learning-focused production ML engineering project that takes a small machine learning model from training through API development, testing, containerization, CI, and AWS deployment.
+
+The goal is to keep the ML workload simple and focus on the engineering required to operate an ML service.
+
+«Core principle: Keep ML small. Maximize production and MLOps learning.»
+
+1. Project Objectives
+
+This project is designed to build practical experience in:
+
+- ML inference and API engineering
+- Input validation and automated testing
+- Configuration management and application structure
+- Docker and Docker Compose
+- Continuous integration and continuous delivery (CI/CD)
+- AWS infrastructure and deployment
+- Logging, health checks, and observability
+- Model versioning and production ML lifecycle management
+
+The Iris classifier is intentionally simple. The primary learning objective is the engineering system surrounding the model.
+
+Project A is a supporting engineering project. The Resume Intelligence Platform remains the primary portfolio project.
+
+2. Technology Stack
+
+Component| Technology
+Language| Python
+ML model| Scikit-learn Logistic Regression
+API| FastAPI
+Request validation| Pydantic
+Inference artifact| Joblib
+Testing| pytest
+Containerization| Docker
+Local orchestration| Docker Compose
+Reverse proxy and frontend| Nginx
+Continuous integration| GitHub Actions
+Cloud deployment| AWS EC2
+Planned container registry| Amazon ECR
+Planned automated deployment| GitHub Actions + AWS IAM/OIDC
+
+3. Architecture
+
+Current deployed architecture
+
+Browser / Mobile Device
+          |
+          | HTTP :80
+          v
+     AWS EC2 Instance
+          |
+          v
+     Nginx Frontend
+          |
+          | Docker internal network
+          | /api/predict
+          v
+     FastAPI Backend
+          |
+          v
+     Input Validation
+          |
+          v
+     Inference Layer
+          |
+          v
+     iris_classifier.joblib
+
+The frontend and backend run as separate Docker Compose services.
+
+Nginx serves the frontend and forwards "/api/" requests to the backend service. The backend listens on port 8000 inside the Docker network and is not directly exposed through an EC2 inbound rule.
+
+Request lifecycle
+
+1. The user enters four Iris measurements.
+2. The frontend sends a JSON request to "/api/predict".
+3. Nginx forwards the request to FastAPI.
+4. FastAPI validates the request.
+5. The inference layer loads and uses the trained model.
+6. The API returns the prediction and probability.
+
+4. Machine Learning Model
+
+- Dataset: Iris
+- Algorithm: Logistic Regression
+- Model artifact: "models/iris_classifier.joblib"
+
+The ML foundation includes data loading, feature and target selection, train/test splitting, model evaluation, serialization, and inference.
+
+Further model experimentation is not a priority unless it teaches an important production engineering concept.
+
+5. Repository Structure
+
+.
+├── .github/
+│   └── workflows/
+│       └── ci.yaml
+├── frontend/
+│   ├── Dockerfile
+│   ├── app.js
+│   ├── index.html
+│   ├── nginx.conf
+│   └── style.css
+├── models/
+│   └── iris_classifier.joblib
+├── src/
+│   ├── __init__.py
+│   ├── inference.py
+│   └── main.py
+├── tests/
+│   ├── test_api.py
+│   └── test_inference.py
+├── .dockerignore
+├── .gitignore
+├── compose.yaml
+├── Dockerfile
+├── requirements.txt
+├── requirements-dev.txt
+└── README.md
 
-The ML model is intentionally simple. The primary objective is to learn how to take a trained ML model and turn it into a reliable, tested, containerized, deployable, observable production service.
+The repository structure may evolve as the project adds deployment automation and observability.
 
-The project should maximize learning in:
+6. Local Development
 
-- Backend/API engineering
-- ML inference engineering
-- Testing
-- Configuration management
-- Logging
-- Docker
-- CI/CD
-- AWS
-- Cloud deployment
-- Kubernetes
-- Monitoring and observability
-- Model/version management
-- Production engineering practices
+Prerequisites
 
-The ML component exists primarily to provide a realistic artifact that must be served in production.
+- Python 3.12
+- Git
+- Docker Desktop or Docker Engine with the Docker Compose plugin
 
----
+Create a Python environment
 
-2. Core Principle
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-dev.txt
 
-«Keep ML small. Maximize production/MLOps learning.»
+Configure the model path
 
-The project must NOT become another ML experimentation project.
+The application supports a "MODEL_PATH" environment variable and has a default path to the model artifact.
 
-Do not spend significant time on:
+For local configuration, create a ".env" file if required:
 
-- Hyperparameter tuning
-- Complex feature engineering
-- Large datasets
-- Advanced model architectures
-- Model competitions
-- Squeezing out tiny accuracy improvements
-- Research-level ML optimization
+MODEL_PATH=models/iris_classifier.joblib
 
-The Iris classification model is sufficient for the ML foundation.
+Do not commit ".env" files or secrets.
 
-The impressive part of this project is:
-
-Trained Model
-      ↓
-Inference Layer
-      ↓
-Tested API
-      ↓
-Docker Container
-      ↓
-CI
-      ↓
-Container Registry
-      ↓
-AWS Deployment
-      ↓
-CD
-      ↓
-Kubernetes
-      ↓
-Monitoring
-
----
-
-3. Relationship With AAA Resume Intelligence Platform
-
-Project A is a supporting learning project.
-
-AAA Resume Intelligence Platform remains the primary portfolio project.
-
-Project A exists to close production engineering gaps so that the same concepts can later be applied to AAA without stopping the main project to learn infrastructure fundamentals.
-
-Examples:
-
-Project A
-FastAPI
-Docker
-pytest
-CI/CD
-AWS
-Kubernetes
-logging
-health checks
-monitoring
-
-             ↓
-
-AAA
-Production deployment
-API engineering
-MLOps
-observability
-CI/CD
-cloud infrastructure
-
-Project A should therefore optimize for transferable engineering knowledge, not portfolio complexity.
-
----
-
-4. Current ML Model
-
-Dataset:
-
-Iris
-
-Model:
-
-Logistic Regression
-
-Current artifact:
-
-models/iris_classifier.joblib
-
-Current ML work completed:
-
-- Dataset loading
-- Feature/target understanding
-- Train/test split
-- Logistic Regression training
-- Evaluation
-- Accuracy
-- Classification report
-- Confusion matrix
-- Model serialization
-- Model loading
-- Basic inference experimentation
-
-The ML foundation is considered sufficient.
-
----
-
-5. Production Architecture
-
-Target architecture:
-
-                    ┌─────────────────┐
-                    │   Client/User   │
-                    └────────┬────────┘
-                             │ HTTP
-                             ↓
-                    ┌─────────────────┐
-                    │    FastAPI      │
-                    │                 │
-                    │ /predict        │
-                    │ /health         │
-                    └────────┬────────┘
-                             ↓
-                    ┌─────────────────┐
-                    │ Input Validation│
-                    │ + API Contract  │
-                    └────────┬────────┘
-                             ↓
-                    ┌─────────────────┐
-                    │ Inference Layer │
-                    └────────┬────────┘
-                             ↓
-                    ┌─────────────────┐
-                    │ Model Artifact  │
-                    │ .joblib         │
-                    └─────────────────┘
-
-This application will then be packaged:
-
-Application
-     ↓
-Docker Image
-     ↓
-Container Registry
-     ↓
-AWS
-     ↓
-Kubernetes
-     ↓
-Production Service
-
----
-
-6. Phase Roadmap
-
-Phase 1 — ML Foundation
-
-Purpose: Create the smallest possible usable ML artifact.
-
-Tasks:
-
-- Choose simple tabular problem
-- Load dataset
-- Define features and target
-- Train/test split
-- Train model
-- Evaluate model
-- Save model artifact
-- Understand what inference requires
-
-Status:
-
-COMPLETE
-
----
-
-Phase 2 — Inference Layer
-
-Purpose: Separate model inference from training.
-
-Tasks:
-
-- Load model safely
-- Create prediction function
-- Define input contract
-- Validate inputs
-- Preserve feature ordering
-- Return structured prediction
-- Handle invalid inputs
-- Write unit tests
-
-Important principle:
-
-Application Input
-       ↓
-Validation
-       ↓
-Feature Ordering
-       ↓
-Model
-       ↓
-Prediction
-
-ML complexity should remain minimal.
-
-Status:
-
-IN PROGRESS
-
----
-
-Phase 3 — FastAPI
-
-Purpose: Turn the inference layer into a proper HTTP service.
-
-Tasks:
-
-- FastAPI application
-- Application structure
-- Pydantic request models
-- Pydantic response models
-- POST "/predict"
-- GET "/health"
-- HTTP status codes
-- Validation errors
-- Application error handling
-- API testing
-- OpenAPI documentation
-
-Target:
-
-POST /predict
-GET  /health
-
-The API should call the inference layer rather than contain model logic itself.
-
----
-
-Phase 4 — Engineering
-
-Purpose: Make the application maintainable.
-
-Tasks:
-
-- Proper project structure
-- Python package structure
-- Configuration management
-- Environment variables
-- ".env" for local development where appropriate
-- Logging
-- Exception handling
-- Dependency management
-- pytest
-- Unit tests
-- Integration/API tests
-- Test organization
-
-Target separation:
-
-API
- ↓
-Service / Inference
- ↓
-Model
-
-No giant "main.py" containing the entire application.
-
----
-
-Phase 5 — Docker
-
-Purpose: Learn containerization properly.
-
-Tasks:
-
-- Understand containers vs virtual environments
-- Write Dockerfile
-- Build image
-- Run container
-- Port mapping
-- Environment variables
-- Container filesystem
-- ".dockerignore"
-- Image inspection
-- Container logs
-- Test API inside container
-- Optimize basic image structure
-
-Target:
-
-Source Code
-    ↓
-Dockerfile
-    ↓
-Docker Image
-    ↓
-Container
-    ↓
-FastAPI
-
----
-
-Phase 6 — CI
-
-Purpose: Automate quality checks.
-
-Use GitHub Actions.
-
-Pipeline should eventually perform:
-
-git push
-   ↓
-CI starts
-   ↓
-Install dependencies
-   ↓
 Run tests
-   ↓
-Run quality checks
-   ↓
-Build Docker image
 
-Topics:
+pytest -q
 
-- GitHub Actions
-- Workflows
-- Jobs
-- Steps
-- Secrets
-- Environment variables
-- Test automation
-- Docker build automation
+The last recorded local test baseline was 9 passing tests, with one deprecation warning. Run the tests again to verify the current baseline.
 
----
+Run the API locally
 
-Phase 7 — AWS
+uvicorn src.main:app --reload
 
-Purpose: Learn the cloud infrastructure required to operate the service.
+The API should be available at "http://localhost:8000".
 
-Topics to cover:
+Interactive API documentation is available at "/docs" when the application is running.
 
-- AWS fundamentals
-- IAM
-- Permissions
-- ECR
-- Container image lifecycle
-- Compute
-- Networking fundamentals
-- Security groups
-- Environment configuration
-- Secrets
-- Logs
-- Health checks
+7. API Reference
 
-The project should use AWS as a practical learning environment rather than attempting to learn every AWS service ever invented.
-
----
-
-Phase 8 — CD
-
-Purpose: Automate deployment.
-
-Target lifecycle:
-
-git push
-   ↓
-CI
-   ↓
-Tests
-   ↓
-Docker build
-   ↓
-Push image to ECR
-   ↓
-Deployment
-   ↓
 Health check
 
-Topics:
+GET /health
 
-- Deployment automation
-- Image tagging
-- Versioning
-- Environment separation
-- Deployment failure handling
-- Rollback concepts
+Returns the service health status.
 
----
+Prediction endpoint
 
-Phase 9 — Kubernetes
+POST /predict
+Content-Type: application/json
 
-Purpose: Understand container orchestration.
+Example request:
 
-Topics:
+{
+  "sepal_length": 5.1,
+  "sepal_width": 3.5,
+  "petal_length": 1.4,
+  "petal_width": 0.2
+}
 
-Core concepts
-
-- Cluster
-- Node
-- Pod
-- Deployment
-- Service
-- Namespace
+Example response:
 
-Configuration
+{
+  "prediction": 0,
+  "probability": 0.9784002314555064
+}
 
-- ConfigMap
-- Secret
+The exact probability depends on the model artifact and inference implementation.
 
-Production behavior
+When using the Nginx frontend, the public-facing path is:
 
-- Readiness probe
-- Liveness probe
-- Resource requests/limits
-- Replicas
-- Rolling deployment
-- Scaling
-- Service discovery
+POST /api/predict
 
-Target:
-
-Kubernetes
-    │
-    ├── Deployment
-    │      └── Pods
-    │
-    ├── Service
-    │
-    ├── ConfigMap
-    │
-    ├── Secret
-    │
-    └── Health Probes
+Nginx forwards this to the backend's "/predict" endpoint.
 
-The goal is understanding why each primitive exists, not memorizing YAML.
+8. Docker Compose
 
----
+Build and start both services:
 
-Phase 10 — Observability
+docker compose up --build -d
 
-Purpose: Understand how production systems are monitored.
+The local frontend is available at:
 
-Tasks:
+http://localhost:8080
 
-- Application logging
-- Container logs
-- Health endpoints
-- Readiness/liveness checks
-- Basic metrics
-- Request latency
-- Error tracking
-- Model prediction monitoring
-- Basic operational dashboards where practical
+Inspect service status:
 
-Important distinction:
+docker compose ps
 
-Logging
-→ What happened?
+View logs:
 
-Metrics
-→ How often/how much?
+docker compose logs --tail 50
 
-Health checks
-→ Is the service alive and ready?
+Stop the services:
 
-Monitoring
-→ Is the system behaving normally?
+docker compose down
 
----
+The backend is accessible to the frontend through the internal Compose network. The backend port does not need to be published to the host for frontend-based predictions.
 
-Phase 11 — Model Lifecycle / MLOps
+9. Continuous Integration
 
-Once the infrastructure is understood, introduce the ML-specific production lifecycle.
+GitHub Actions runs automated tests on repository changes.
 
-Target:
+The CI workflow installs development dependencies and executes the test suite.
 
-Data
- ↓
-Validation
- ↓
-Training
- ↓
-Evaluation Gate
- ↓
-Model Artifact / Registry
- ↓
-Deployment
- ↓
-Inference
- ↓
-Monitoring
- ↓
-Drift / Performance Signal
- ↓
-Retraining
- ↓
-Redeployment
-
-Potential tooling should be introduced only when the underlying concept is understood.
-
-Model/version management should be treated as a production concern rather than an excuse to add seventeen fashionable tools.
+Current status: CI has passed in the previous verified run. Recheck the latest workflow run before treating a new commit as verified.
 
----
+Automated Docker image publishing and AWS deployment are future milestones.
 
-Phase 12 — Documentation
+10. AWS Deployment
 
-Final documentation should include:
+The application has been deployed to an AWS EC2 instance running Amazon Linux 2023.
 
-- Architecture diagram
-- Project structure
-- API documentation
-- Local setup
-- Environment configuration
-- Docker instructions
-- Testing instructions
-- CI/CD workflow
-- AWS architecture
-- Kubernetes architecture
-- Deployment instructions
-- Monitoring approach
-- Design decisions
-- Trade-offs
-- Known limitations
-- Failure/rollback strategy
-
----
-
-7. Learning Rules
-
-Rule 1 — ML stays small
-
-Do not expand the Iris model unless it teaches an important production concept.
-
----
+Deployment architecture
 
-Rule 2 — Understand before frameworks
+- EC2 provides the compute environment.
+- Docker runs the frontend and backend containers.
+- Docker Compose manages the two services.
+- Nginx serves the public frontend and proxies API requests.
+- FastAPI serves predictions from the saved model artifact.
 
-Before using a tool, understand the problem it solves.
+Security group
 
-Examples:
+The intended inbound rules are:
 
-Docker
-→ What problem does containerization solve?
+Protocol| Port| Source| Purpose
+SSH| 22| Restricted to the operator's IP| Administration
+HTTP| 80| "0.0.0.0/0"| Public demo access
 
-Kubernetes
-→ What problem does orchestration solve?
+The backend's port 8000 is not exposed through an inbound security-group rule.
 
-CI/CD
-→ What problem does automation solve?
+Security limitation: The public demo currently uses HTTP. Traffic is not encrypted. HTTPS and a valid TLS certificate remain future work.
 
-AWS
-→ What infrastructure problem are we solving?
+Deployment verification
 
-Model registry
-→ What model lifecycle problem are we solving?
+The deployed application has been tested from an external mobile device.
 
----
+Verified behavior includes:
 
-Rule 3 — Build, don't watch
-
-Every major topic must involve implementation.
-
-Concept
- ↓
-Implement
- ↓
-Break it
- ↓
-Debug it
- ↓
-Test it
- ↓
-Understand it
-
----
-
-Rule 4 — No giant code dumps
-
-Implementation should be incremental.
-
-The workflow is:
-
-Concept
- ↓
-Requirement
- ↓
-User implementation
- ↓
-Review
- ↓
-Correction
- ↓
-Test
- ↓
-Next component
-
----
-
-Rule 5 — One layer at a time
-
-Do not introduce:
-
-FastAPI + Docker + Kubernetes + AWS
-
-simultaneously.
-
-Build the dependency chain:
-
-Python
- ↓
-Inference
- ↓
-API
- ↓
-Tests
- ↓
-Docker
- ↓
-CI
- ↓
-AWS
- ↓
-CD
- ↓
-Kubernetes
- ↓
-Monitoring
-
----
-
-8. Session Constraint
-
-Each Project A session should target approximately 1 hour minimum, with longer sessions used when the topic genuinely benefits from it.
-
-Preferred structure:
-
-10–15 min
-Concept
-
-30–35 min
-Implementation
-
-10–15 min
-Testing / debugging / reasoning
-
-Do not artificially add work merely to fill time.
-
-However, a major infrastructure topic should be allowed to occupy multiple sessions when necessary.
-
----
-
-9. Priority Allocation
-
-Approximate learning emphasis:
-
-ML Foundation / Inference     ███
-FastAPI                       ████
-Testing                       ████
-Engineering                   ████
-Docker                        █████
-CI/CD                         █████
-AWS                           █████
-Kubernetes                    █████
-Observability                 ████
-Model Lifecycle / MLOps      █████
-
-The project should not become:
-
-████████████████ ML experimentation
-██ Docker
-█ AWS
-
-It should be the opposite.
-
----
-
-10. Definition of Done
-
-Project A is successful when we can demonstrate:
-
-1. A trained model exists
-2. The model is loaded by an inference service
-3. The inference layer is tested
-4. FastAPI exposes the model
-5. API validation works
-6. Application logging works
-7. Automated tests run in CI
-8. The application is containerized
-9. Docker image is built automatically
-10. Image is stored in AWS
-11. Application is deployed to AWS
-12. CD can deploy a new version
-13. Application runs under Kubernetes
-14. Kubernetes manages replicas/configuration/secrets
-15. Health probes work
-16. Logs and basic metrics are observable
-17. Model/version lifecycle is understood
-18. The entire architecture can be explained without reading the README
-
----
-
-11. Explicit Non-Goals
-
-This project is not intended to become:
-
-- An ML research project
-- A Kaggle competition
-- A complex prediction system
-- A huge dataset pipeline
-- A deep-learning project
-- A generic CRUD application
-- A Kubernetes certification course
-- An AWS service catalog
-- A collection of disconnected tutorials
-
-The project must remain a small ML workload wrapped in an increasingly realistic production system.
-
----
-
-12. Current Checkpoint
-
-Project A
-Production ML API
-
-P1 ML Foundation
-██████████ COMPLETE
-
-P2 Inference Layer
-██████░░░░ IN PROGRESS
-
-P3 FastAPI
-░░░░░░░░░░
-
-P4 Engineering
-░░░░░░░░░░
-
-P5 Docker
-░░░░░░░░░░
-
-P6 CI
-░░░░░░░░░░
-
-P7 AWS
-░░░░░░░░░░
-
-P8 CD
-░░░░░░░░░░
-
-P9 Kubernetes
-░░░░░░░░░░
-
-P10 Observability
-░░░░░░░░░░
-
-P11 MLOps Lifecycle
-░░░░░░░░░░
-
-P12 Documentation
-░░░░░░░░░░
-
-Current artifacts:
-
-models/
-└── iris_classifier.joblib
-
-Next implementation milestone:
-
-Finish minimal inference layer
-        ↓
-Move immediately to FastAPI
-        ↓
-Shift project emphasis toward MLOps
+- Frontend returns HTTP 200.
+- Prediction requests succeed through Nginx.
+- The API returns a valid Iris prediction.
+- Backend communication works over the internal Docker network.
+
+Cost management
+
+The EC2 instance should be stopped when the demo is not required. Stopping the instance reduces compute charges, but EBS storage and other applicable resources may still incur costs. The public IP may also change after stopping and restarting the instance.
+
+11. Roadmap and Current Status
+
+Phase| Objective| Status
+1. ML foundation| Train and serialize the model| Complete
+2. Inference| Validate input and run model inference| Implemented
+3. FastAPI| Expose health and prediction endpoints| Implemented
+4. Engineering| Tests, configuration and project structure| Core implemented
+5. Docker| Containerize the application| Implemented
+6. CI| Automate tests using GitHub Actions| Implemented
+7. AWS| Deploy the service to EC2| Initial deployment verified
+8. CD| Automate build, publishing and deployment| Next major milestone
+9. Kubernetes| Learn orchestration and deployment primitives| Planned
+10. Observability| Add metrics and operational monitoring| Planned
+11. Model lifecycle| Add model versioning and lifecycle controls| Planned
+12. Documentation| Document implementation and operational procedures| In progress
+
+Status labels describe the current known implementation, not a claim that every production concern has been solved.
+
+12. Next Milestone: Continuous Delivery
+
+The next major objective is to remove manual image transfer and deployment steps.
+
+Target workflow:
+
+Git Push
+   |
+   v
+GitHub Actions CI
+   |
+   v
+Run Tests
+   |
+   v
+Build Docker Images
+   |
+   v
+Authenticate to AWS using IAM/OIDC
+   |
+   v
+Push Images to Amazon ECR
+   |
+   v
+Deploy Updated Images to EC2
+   |
+   v
+Run Health Checks
+   |
+   v
+Verify Deployment
+
+Implementation will be incremental. First, the images will be published to ECR. Then AWS authentication and deployment automation will be configured, followed by failure handling and rollback concepts.
+
+13. Learning Principles
+
+1. Keep the ML workload small.
+2. Understand the problem before introducing a tool.
+3. Build and test instead of relying on tutorials alone.
+4. Introduce one infrastructure layer at a time.
+5. Debug failures and understand their causes.
+6. Avoid giant code dumps and implement incrementally.
+7. Prefer transferable engineering skills over unnecessary complexity.
+
+14. Known Limitations
+
+- The public demo currently uses HTTP rather than HTTPS.
+- CD and automated image publishing have not yet been implemented.
+- Kubernetes deployment has not yet been implemented.
+- Production-grade metrics, alerting, and model monitoring remain future work.
+- The Iris model is a learning artifact, not a production decision system.
+
+15. Definition of Done
+
+The broader learning project will be considered complete when the model is tested, the service is containerized, CI is automated, images are stored in a registry, deployment is automated, Kubernetes fundamentals are implemented, operational behavior is observable, and the complete architecture can be explained without relying on the README.
+
+The objective is not to build a complex ML model. It is to demonstrate the engineering required to deploy, update, operate, and maintain an ML service.

@@ -37,5 +37,6 @@ Thumbs.db
 *.tar
 
 # Secrets
-.env
 *.pem
+# Generated deployment archives
+*.zip
