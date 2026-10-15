@@ -40,3 +40,4 @@ Thumbs.db
 *.pem
 # Generated deployment archives
 *.zip
+*.json
